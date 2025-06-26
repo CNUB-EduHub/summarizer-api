@@ -1,20 +1,10 @@
-// api/index.js
-
-import { NextResponse } from 'next/server';
-
-export const config = {
-  runtime: 'edge',
-};
-
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new NextResponse(JSON.stringify({ error: 'Only POST allowed' }), {
-      status: 405,
-    });
+    return res.status(405).json({ error: 'Only POST allowed' });
   }
 
   try {
-    const { text } = await req.json();
+    const { text } = req.body;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -38,12 +28,8 @@ export default async function handler(req) {
     const data = await response.json();
     const summary = data.choices?.[0]?.message?.content || 'No summary found.';
 
-    return new NextResponse(JSON.stringify({ summary }), {
-      status: 200,
-    });
+    res.status(200).json({ summary });
   } catch (error) {
-    return new NextResponse(JSON.stringify({ error: 'Something went wrong.' }), {
-      status: 500,
-    });
+    res.status(500).json({ error: 'Something went wrong.' });
   }
 }
