@@ -1,0 +1,19 @@
+# Node modules (not needed on Vercel)
+node_modules/
+
+# Environment variables (handled in Vercel Dashboard)
+.env
+.env.local
+.env.production
+.env.development
+
+# Logs
+logs
+*.log
+
+# Vercel output (if working locally)
+.vercel
+
+# System files
+.DS_Store
+Thumbs.db
