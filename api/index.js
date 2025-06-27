@@ -1,35 +1,68 @@
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Only POST allowed' });
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(req) {
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Only POST requests are allowed" }), {
+      status: 405,
+    });
   }
 
   try {
-    const { text } = req.body;
+    const { text } = await req.json();
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    if (!text) {
+      return new Response(JSON.stringify({ error: "Missing 'text' in request body" }), {
+        status: 400,
+      });
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "Missing OpenAI API key in environment variables" }), {
+        status: 500,
+      });
+    }
+
+    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: "gpt-3.5-turbo",
         messages: [
           {
-            role: 'user',
-            content: `Summarize the following in bullet points:\n\n${text}`,
-          },
+            role: "user",
+            content: `Please summarize the following text:\n\n${text}`
+          }
         ],
         temperature: 0.5,
-        max_tokens: 500,
-      }),
+        max_tokens: 300
+      })
     });
 
-    const data = await response.json();
-    const summary = data.choices?.[0]?.message?.content || 'No summary found.';
+    const openaiData = await openaiRes.json();
 
-    res.status(200).json({ summary });
+    if (openaiData.error) {
+      return new Response(JSON.stringify({ error: openaiData.error.message || "OpenAI API error" }), {
+        status: 500
+      });
+    }
+
+    const summary = openaiData.choices?.[0]?.message?.content?.trim();
+
+    return new Response(JSON.stringify({ summary }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200,
+    });
+
   } catch (error) {
-    res.status(500).json({ error: 'Something went wrong.' });
+    return new Response(JSON.stringify({ error: error.message || "Unknown error" }), {
+      status: 500,
+    });
   }
 }
